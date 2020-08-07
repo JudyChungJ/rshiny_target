@@ -44,6 +44,10 @@ head(df$open_date)
 df$open_date = readr::parse_datetime(df$open_date)
 df$remod_date = readr::parse_datetime(df$remod_date)
 class(df$open_date)
+
+# add yr column for 
+df = mutate(df,open_year = format(df$open_date, "%Y")) %>% 
+  mutate(open_year=(as.numeric(open_year)))
 ```
 
 # separate capability
@@ -228,23 +232,21 @@ dfy = mutate(df,open_year = format(df$open_date, "%Y")) %>%
   mutate(open_year=(as.numeric(open_year))) %>% 
   group_by(open_year) %>% 
   summarize(n=n())
-head(dfyt)
+head(dfy)
 # add totn column for for loop
 dfyt = dfy %>% 
   mutate(totn=n)
-
+head(dfyt)
 # for loop to add previous year number of stores to current to get total stores by year
 for (i in 2:length(dfyt$n)) {
-  ifelse(dfyt$state[i]==dfyt$state[i-1],
-         (dfyt$totn[i]=dfyt$totn[i]+dfyr$totn[i-1]),
-         (dfyt$totn[i]=dfyt$totn[i]))
+  dfyt$totn[i]=dfyt$totn[i]+dfyt$totn[i-1]
 }
 dfyt
 
 # line graph the total store numbers
-dfyr %>% 
+dfyt %>% 
   ggplot(aes(x=open_year, y=totn))+
-  geom_line(aes(color=state,group = state))
+  geom_line()
 
 rm(dfyr)
 ```
@@ -272,6 +274,7 @@ dfyrs
 
 # line graph the total store numbers
 dfyrs %>% 
+  
   ggplot(aes(x=open_year, y=totn))+
   geom_line(aes(color=state,group = state))
 
