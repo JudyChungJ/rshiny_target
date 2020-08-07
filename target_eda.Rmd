@@ -1,0 +1,280 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+# Libraries
+```{r}
+library(tidyverse)
+library(plotly)
+library(openintro) #state abb
+library(dygraphs)
+```
+
+# Load in the target file
+```{r}
+df =read.csv('./data/target.csv')
+str(df)
+head(df)
+```
+# Select Columns and rename
+```{r}
+df = df %>% 
+  select(city=Address.City, 
+         county=Address.County, 
+         state=Address.Subdivision,
+         lat=Address.Latitude,
+         lon=Address.Longitude,
+         address=Address.FormattedAddress,
+         intersection=Address.IntersectionDescription,
+         storeID=AlternateIdentifier.ID,
+         remod_date=LocationMilestones.LastRemodelDate,
+         open_date=LocationMilestones.OpenDate,
+         name=Name,
+         type=SubTypeDescription,
+         beginMF=BeginTime.MF,
+         beginSa=BeginTime.Sat,
+         beginSu=BeginTime.Sun,
+         capability=AllCapability)
+```
+# change dates to datetimes
+```{r}
+# remod date and open date parse datetime
+head(df$open_date)
+df$open_date = readr::parse_datetime(df$open_date)
+df$remod_date = readr::parse_datetime(df$remod_date)
+class(df$open_date)
+```
+
+# separate capability
+```{r}
+# first strip, then separate by ',', then gather and drop key column
+temp=df %>% 
+  mutate(capability = gsub('\\[','', capability)) %>% 
+  mutate(capability = gsub('\\]','', capability)) %>% 
+  mutate(capability = gsub("'",'', capability)) %>% 
+  mutate(capability = gsub(" ",'', capability)) %>% 
+  mutate(capability = gsub('Caf\xfc\xbe\x8e\x96\x94\xbc','Cafe',capability))
+
+temp=separate(temp,capability,
+              into=c('v1','v2','v3','v4','v5','v6','v7','v8','v9','v10','v11','v12','v13','v14','v15','v16','v17'),sep=',', remove=TRUE)
+
+dfc=gather(temp, key='col', value='capability', v1:v17, na.rm=TRUE)
+
+dfc$col = NULL
+head(dfc)
+unique(dfc$capability)
+```
+
+
+```{r}
+dfc %>% 
+  group_by(state) %>% 
+  mutate(n_state=n()) %>% 
+  group_by(state,capability) %>% 
+  summarise(norm_cap=mean(n()/n_state)) %>% 
+  arrange(desc(norm_cap))
+
+dfc %>% 
+  group_by(capability) %>% 
+  summarise(n=n()) %>% 
+  arrange(desc(n))
+
+dfc %>% 
+  group_by(state) %>% 
+  mutate(n_state=n_distinct(storeID)) %>% 
+  filter(capability=='FreshGrocery') %>% 
+  group_by(state) %>% 
+  summarise(mean(n_state),ngrocery=n(), p_cap = mean(ngrocery/n_state)) %>% 
+  arrange(desc(ngrocery))
+
+dfc %>% 
+  group_by(state) %>% 
+  mutate(n_state=n_distinct(storeID)) %>% 
+  filter(capability=='Bakery') %>% 
+  group_by(state) %>% 
+  summarise(mean(n_state),nbakery=n(), p_cap = mean(nbakery/n_state)) %>% 
+  arrange(desc(nbakery))
+
+dfc %>% 
+  group_by(state) %>% 
+  mutate(n_state=n_distinct(storeID)) %>% 
+  filter(capability=='MinuteClinic') %>% 
+  group_by(state) %>% 
+  summarise(mean(n_state),nbakery=n(), p_cap = mean(nbakery/n_state)) %>% 
+  arrange(desc(nbakery))
+
+dfc %>% 
+  group_by(state) %>% 
+  mutate(n_state=n_distinct(storeID)) %>% 
+  filter(capability=='AcceptsWIC') %>% 
+  group_by(state) %>% 
+  summarise(mean(n_state),nbakery=n(), p_cap = mean(nbakery/n_state)) %>% 
+  arrange(desc(nbakery))
+
+dfc %>% 
+  group_by(state) %>% 
+  mutate(n_state=n_distinct(storeID)) %>% 
+  filter(capability=='Starbucks') %>% 
+  group_by(state) %>% 
+  summarise(mean(n_state),nbakery=n(), p_cap = mean(nbakery/n_state)) %>% 
+  arrange(desc(nbakery))
+
+dfc %>% 
+  group_by(state) %>% 
+  mutate(n_state=n_distinct(storeID)) %>% 
+  filter(capability=='Optical') %>% 
+  group_by(state) %>% 
+  summarise(mean(n_state),nbakery=n(), p_cap = mean(nbakery/n_state)) %>% 
+  arrange(desc(nbakery))
+
+dfc %>% 
+  group_by(state) %>% 
+  mutate(n_state=n_distinct(storeID)) %>% 
+  filter(capability=='Starbucks') %>% 
+  group_by(state) %>% 
+  summarise(mean(n_state),nbakery=n(), p_cap = mean(nbakery/n_state)) %>% 
+  arrange(desc(nbakery))
+```
+# looking at store type distribution
+```{r}
+dfc %>% 
+  group_by(type) %>% 
+  summarise(n=n()) %>% 
+  arrange(desc(n))
+
+dfc %>% 
+  group_by(state) %>% 
+  mutate(n_state=n_distinct(storeID)) %>% 
+  filter(type=='SuperTarget') %>% 
+  group_by(state) %>% 
+  summarise(mean(n_state),nbakery=n(), p_cap = mean(nbakery/n_state)) %>% 
+  arrange(desc(nbakery))
+
+dfc %>% 
+  group_by(state) %>% 
+  mutate(n_state=n_distinct(storeID)) %>% 
+  filter(type=='City') %>% 
+  group_by(state) %>% 
+  summarise(mean(n_state),nbakery=n(), p_cap = mean(nbakery/n_state)) %>% 
+  arrange(desc(nbakery))
+# weirdly WA, OR west coast state have smaller city targets NY and CA have them 
+
+dfc %>% 
+  group_by(state) %>% 
+  mutate(n_state=n_distinct(storeID)) %>% 
+  filter(type=='TargetExpress') %>% 
+  group_by(state) %>% 
+  summarise(mean(n_state),nbakery=n(), p_cap = mean(nbakery/n_state)) %>% 
+  arrange(desc(nbakery))
+# kind of correlates with state university numbers http://www.univsearch.com/state.php
+
+```
+# opening data
+```{r}
+
+
+smalldf= df %>% 
+  group_by(state) %>% 
+  filter(n()>50) %>% 
+  mutate(ns=n())
+
+# get year column and do some exploration
+mutate(df,open_year = format(df$open_date, "%Y")) %>% 
+  group_by(state) %>% 
+  filter(n()>60) %>% 
+  group_by(state, open_year) %>% 
+  summarize(n=n()) %>% 
+  ggplot(aes(x=open_year, y=n))+
+  geom_line(aes(color=state,group = state))+
+  facet_grid(rows = 'state')
+  
+?text
+
+
+```
+
+```{r}
+dfopen = mutate(df,open_year = format(df$open_date, "%Y")) %>% 
+  group_by(state) %>% 
+  filter(state=='MN') %>% 
+  mutate(open_year=(as.numeric(open_year))) %>% 
+  group_by(state, open_year) %>% 
+  summarize(n=n())
+
+dygraph(dfopen[,-1])
+
+# ggplot(dfopen, aes(x=open_year, y=n))+
+#   geom_line(data=dfopen[!is.na(dfopen$open_year),])
+#   facet_grid(rows = 'state')
+
+
+
+test2= mutate(df,open_year = as.numeric(format(df$open_date, "%Y"))) %>% 
+  group_by(state) %>% 
+  filter(state=='MN') %>% 
+  group_by(state, open_year) %>% 
+  summarize(n=n())
+
+str(df)
+
+
+```
+```{r}
+# graph year by total number of stores by that year
+
+# add open_year col as numeric and n summarize
+dfy = mutate(df,open_year = format(df$open_date, "%Y")) %>% 
+  mutate(open_year=(as.numeric(open_year))) %>% 
+  group_by(open_year) %>% 
+  summarize(n=n())
+head(dfyt)
+# add totn column for for loop
+dfyt = dfy %>% 
+  mutate(totn=n)
+
+# for loop to add previous year number of stores to current to get total stores by year
+for (i in 2:length(dfyt$n)) {
+  ifelse(dfyt$state[i]==dfyt$state[i-1],
+         (dfyt$totn[i]=dfyt$totn[i]+dfyr$totn[i-1]),
+         (dfyt$totn[i]=dfyt$totn[i]))
+}
+dfyt
+
+# line graph the total store numbers
+dfyr %>% 
+  ggplot(aes(x=open_year, y=totn))+
+  geom_line(aes(color=state,group = state))
+
+rm(dfyr)
+```
+
+```{r}
+# graph year by total number of stores by that year and state
+
+# add open_year col as numeric and n summarize
+dfyrs = mutate(df,open_year = format(df$open_date, "%Y")) %>% 
+  mutate(open_year=(as.numeric(open_year))) %>% 
+  group_by(state, open_year) %>% 
+  summarize(n=n())
+
+# add totn column for for loop
+dfyrs = dfyrs %>% 
+  mutate(totn=n)
+
+# for loop to add previous year number of stores to current to get total stores by year
+for (i in 2:length(dfyrs$n)) {
+  ifelse(dfyrs$state[i]==dfyrs$state[i-1],
+         (dfyrs$totn[i]=dfyrs$totn[i]+dfyrs$totn[i-1]),
+         (dfyrs$totn[i]=dfyrs$totn[i]))
+}
+dfyrs
+
+# line graph the total store numbers
+dfyrs %>% 
+  ggplot(aes(x=open_year, y=totn))+
+  geom_line(aes(color=state,group = state))
+
+
+```
+
