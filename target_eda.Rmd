@@ -9,6 +9,23 @@ library(tidyverse)
 library(plotly)
 library(openintro) #state abb
 library(dygraphs)
+library(arules)
+library(arulesViz)
+library(igraph)
+
+library(plyr)
+library(data.table)
+library(dplyr)
+library(ggplot2)
+library(knitr)
+library(stringr)
+library(DT)
+library(plotly)
+library(arules)
+library(arulesViz)
+library(visNetwork)
+library(igraph)
+library(kableExtra)
 ```
 
 # Load in the target file
@@ -48,26 +65,150 @@ class(df$open_date)
 # add yr column for 
 df = mutate(df,open_year = format(df$open_date, "%Y")) %>% 
   mutate(open_year=(as.numeric(open_year)))
+
+head(df)
 ```
 
 # separate capability
 ```{r}
 # first strip, then separate by ',', then gather and drop key column
-temp=df %>% 
+into=c('v1','v2','v3','v4','v5','v6','v7','v8','v9','v10','v11','v12','v13','v14','v15','v16','v17')
+
+temp1=df %>% 
   mutate(capability = gsub('\\[','', capability)) %>% 
   mutate(capability = gsub('\\]','', capability)) %>% 
   mutate(capability = gsub("'",'', capability)) %>% 
   mutate(capability = gsub(" ",'', capability)) %>% 
   mutate(capability = gsub('Caf\xfc\xbe\x8e\x96\x94\xbc','Cafe',capability))
 
-temp=separate(temp,capability,
-              into=c('v1','v2','v3','v4','v5','v6','v7','v8','v9','v10','v11','v12','v13','v14','v15','v16','v17'),sep=',', remove=TRUE)
+temp=separate(temp1,capability,
+              into=into,sep=',', remove=TRUE)
 
 dfc=gather(temp, key='col', value='capability', v1:v17, na.rm=TRUE)
 
 dfc$col = NULL
 head(dfc)
 unique(dfc$capability)
+```
+
+```{r}
+# create tag df for market basket analysis
+head(temp1)
+tagdf=select(temp1, storeID, capability)
+head(tagdf)
+
+# drop the storeID after checking all unique values
+tagdf$storeID = NULL
+
+# separate capability to columns
+tagdf2=separate(tagdf,capability,into=into,sep=',')
+
+# drop stores that have no tags
+tagdf2= filter(tagdf2,tagdf2$v1!="")
+
+#write.csv(tagdf2, 'tag.csv',quote = FALSE, row.names = TRUE)
+
+
+# make transactions type
+trans = read.transactions('tag.csv', format = 'basket', sep=',')
+class(trans)
+summary(trans)
+# from summary
+
+rules = apriori(trans, parameter = list(supp=0.001, conf=0.8))
+rules = sort(rules, by='confidence', decreasing = TRUE)
+rules = rules[!is.redundant(rules)]
+summary(rules)
+inspect(rules[1:20])
+```
+```{r}
+subrules2 <- head(sort(rules, by="confidence"),30)
+ig <- plot( subrules2, method="graph", control=list(type="items") )
+ig_df <- get.data.frame( ig, what = "both" )
+ig_df <- toVisNetworkData(ig, idToLabel = FALSE)
+
+visNetwork(ig_df$nodes, ig_df$edges) %>%
+visNodes(size = 10) %>%
+visLegend() %>%
+visEdges(smooth = FALSE) %>%
+visOptions(highlightNearest = TRUE, nodesIdSelection = TRUE) %>%
+visInteraction(navigationButtons = TRUE) %>%
+visEdges(arrows = 'from') %>%
+visPhysics(
+solver = "barnesHut",
+maxVelocity = 35,
+forceAtlas2Based = list(gravitationalConstant = -6000))
+
+tagdf2 %>%
+   visNodes(size = 10) %>%
+   visLegend() %>%
+   visEdges(smooth = FALSE) %>%
+   visOptions(highlightNearest = TRUE, nodesIdSelection = TRUE) %>%
+   visInteraction(navigationButtons = TRUE) %>%
+   visEdges(arrows = 'from') %>%
+   visPhysics(
+        solver = "barnesHut",
+        maxVelocity = 35,
+        forceAtlas2Based = list(gravitationalConstant = -6000)
+      )
+?get.data.frame
+summary(rules)
+```
+```{r}
+# Give names to the rules. groceries is the dataframe that is the result of the Market Basket Analysis.
+rules <- rules %>% mutate(rule = row_number(), rule = str_c("Rule ",parse_character(rule)))
+
+# Create a dataframe for the relationships from rules to right-hand side products.
+rule_rhs_edges <- rules %>%
+  select(rule, rhs) %>%
+  rename(from = rule, to = rhs)
+
+# Create a dataframe for the relationships from left-hand side products to the Rules.
+lhs_rule_edges <- rules %>%
+  separate_rows(lhs, sep = "\\s*\\,\\s*") %>%
+  select(lhs, rule) %>%
+  rename(from = lhs, to = rule)
+    
+# Create a dataframe for all the relationships in the graph by binding the above 2 dataframes.
+edges <- lhs_rule_edges %>%
+  bind_rows(rule_rhs_edges)
+
+require(igraph)
+# Set random seed for reproducibility of the chart.
+set.seed(0)
+
+# Create a graph object
+g <- graph.data.frame(edges, directed=TRUE)
+
+# Function to get support for circle in the graph.
+v_to_support_map <- setNames(rules$support*4000, rules$rule)
+v_to_support <- function(name) {
+  if_else(name %in% names(v_to_support_map), v_to_support_map[name],0)
+}
+
+# Function to get lift for circle in the graph.
+v_to_lift_map <- setNames(rules$lift, rules$rule)
+v_to_lift <- function(name) {
+  if_else(name %in% names(v_to_lift_map), v_to_lift_map[name],0)
+}
+
+# Function to get confidence for circle in the graph.
+v_to_confidence_map <- setNames(rules$confidence, rules$rule)
+v_to_confidence <- function(name) {
+  if_else(name %in% names(v_to_confidence_map), v_to_confidence_map[name],0)
+}
+
+# Set color based on confidence
+c_scale <- colorRamp(c('white','red'))
+V(g)$color <- apply(c_scale(v_to_confidence(V(g)$name)), 1, function(x) rgb(x[1]/255,x[2]/255,x[3]/255, alpha=0.8) )
+
+# Do not display name of rules
+modify_label <- function(x) {if_else(str_detect(x,"^Rule "), "", x)}
+labels <- modify_label(V(g)$name)
+
+# Plot the graph
+par(mar=c(0,0,0,0)) 
+plot(g, edge.arrow.size=0.5, vertex.size=v_to_support(V(g)$name), vertex.label=labels, vertex.label.family="sans", vertex.label.color=rgb(0.4,0.4,0.4), vertex.label.cex=0.9, vertex.frame.color=rgb(1,0.5,0.5))
 ```
 
 
@@ -228,8 +369,7 @@ str(df)
 # graph year by total number of stores by that year
 
 # add open_year col as numeric and n summarize
-dfy = mutate(df,open_year = format(df$open_date, "%Y")) %>% 
-  mutate(open_year=(as.numeric(open_year))) %>% 
+dfy = df %>% 
   group_by(open_year) %>% 
   summarize(n=n())
 head(dfy)
@@ -248,15 +388,13 @@ dfyt %>%
   ggplot(aes(x=open_year, y=totn))+
   geom_line()
 
-rm(dfyr)
 ```
 
 ```{r}
 # graph year by total number of stores by that year and state
 
 # add open_year col as numeric and n summarize
-dfyrs = mutate(df,open_year = format(df$open_date, "%Y")) %>% 
-  mutate(open_year=(as.numeric(open_year))) %>% 
+dfyrs = df %>% 
   group_by(state, open_year) %>% 
   summarize(n=n())
 
@@ -274,10 +412,26 @@ dfyrs
 
 # line graph the total store numbers
 dfyrs %>% 
-  
   ggplot(aes(x=open_year, y=totn))+
   geom_line(aes(color=state,group = state))
 
 
+```
+
+# just a peak at the personal income and pop by year csv
+```{r}
+indf= read.csv('./data/personal_income.csv',header=TRUE, skip=1)[,-1]
+head(indf)
+header = as.character(indf[1,])
+header
+header = cat('placeholder', header)
+length(header)
+dim(indf)
+indf= read.csv('./data/personal_income.csv',header=FALSE, col.names = header)[ -1,-1]
+head(indf)
+?read.csv
+header=as.character(indf[1,])
+header
+indf[[1]]
 ```
 
