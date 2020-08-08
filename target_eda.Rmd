@@ -12,75 +12,123 @@ library(dygraphs)
 library(arules)
 library(arulesViz)
 library(igraph)
-
-library(plyr)
-library(data.table)
-library(dplyr)
 library(ggplot2)
-library(knitr)
-library(stringr)
-library(DT)
-library(plotly)
-library(arules)
-library(arulesViz)
-library(visNetwork)
-library(igraph)
-library(kableExtra)
+
 ```
 
 # Load in the target file
 ```{r}
-df =read.csv('./data/target.csv')
+df =read.csv('/Users/judy/Desktop/rshiny/data/target.csv')
 str(df)
 head(df)
 ```
-# Select Columns and rename
+# Clean and restructure data
 ```{r}
+# Select Columns and rename
 df = df %>% 
-  select(city=Address.City, 
-         county=Address.County, 
-         state=Address.Subdivision,
+  select(state=Address.Subdivision,
          lat=Address.Latitude,
          lon=Address.Longitude,
-         address=Address.FormattedAddress,
-         intersection=Address.IntersectionDescription,
          storeID=AlternateIdentifier.ID,
-         remod_date=LocationMilestones.LastRemodelDate,
          open_date=LocationMilestones.OpenDate,
-         name=Name,
          type=SubTypeDescription,
-         beginMF=BeginTime.MF,
-         beginSa=BeginTime.Sat,
-         beginSu=BeginTime.Sun,
          capability=AllCapability)
-```
+
 # change dates to datetimes
-```{r}
-# remod date and open date parse datetime
-head(df$open_date)
 df$open_date = readr::parse_datetime(df$open_date)
-df$remod_date = readr::parse_datetime(df$remod_date)
-class(df$open_date)
 
 # add yr column for 
 df = mutate(df,open_year = format(df$open_date, "%Y")) %>% 
   mutate(open_year=(as.numeric(open_year)))
 
-head(df)
-```
-
-# separate capability
-```{r}
-# first strip, then separate by ',', then gather and drop key column
-into=c('v1','v2','v3','v4','v5','v6','v7','v8','v9','v10','v11','v12','v13','v14','v15','v16','v17')
-
-temp1=df %>% 
+# clean capability column
+df=df %>% 
   mutate(capability = gsub('\\[','', capability)) %>% 
   mutate(capability = gsub('\\]','', capability)) %>% 
   mutate(capability = gsub("'",'', capability)) %>% 
-  mutate(capability = gsub(" ",'', capability)) %>% 
-  mutate(capability = gsub('Caf\xfc\xbe\x8e\x96\x94\xbc','Cafe',capability))
+  mutate(capability = gsub(", ",',', capability)) %>% 
+  mutate(capability = gsub('Caf\xfc\xbe\x8e\x96\x94\xbc','Cafe',capability)) %>% 
+  mutate(capability = gsub('SuperTarget','',capability)) # redundant tag in capabilty is in type col
 
+# 
+
+#write.csv(df,'data/clean_target.csv')
+```
+# combine other data sets
+```{r}
+# all data from 2016
+# poverty SOURCE: U.S. Bureau of the Census, Current Population Survey, Annual Social and Economic Supplements.
+pov = read.csv('data/3yrave_2016_18_percentpov.csv',header = TRUE, sep = ',')
+pov = dplyr::rename(pov, 'st_pov_p'=percent, 'st_pov_se'=standard_error)
+pov
+# read personal income and pop from bea
+income_pop = read.csv('./data/personal_income.csv',header=TRUE, skip=1)[,-1]
+# filter and select 2016 data
+income_pop= income_pop %>% 
+  select(state=GeoName, description=Description, '2016'=X2017) %>% 
+  filter(state!='United States', description=='Population (persons) 1/'|
+           description=='Per capita personal income (dollars) 2/')
+# spead description column
+income_pop= spread(income_pop, description, '2016') %>% 
+  dplyr::rename('st_percap_income_usd'='Per capita personal income (dollars) 2/') %>% 
+  dplyr::rename('st_pop'='Population (persons) 1/')
+
+#combine pov and income
+join1 = left_join(pov, income_pop, by='state')
+
+# education working ages 25-64
+education = read.csv('data/ed_workpop_25_64.csv',header=TRUE)[,-1]
+head(education)
+# filter and select 2016 data
+education= education %>% 
+  select(state=Location, description=Education, 
+         st_n_ed=Data, TimeFrame, DataFormat) %>% 
+  filter(state!='United States', description=='High school diploma or GED'|
+         description=='Bachelor\'s Degree', TimeFrame=='2016', 
+         DataFormat=='Percent')
+# spead description column
+education = spread(education, 'description', st_n_ed) %>% 
+  dplyr::rename('st_bach_p'='Bachelor\'s Degree', 
+                'st_hs_p'= 'High school diploma or GED')
+# drop columns
+education$TimeFrame=NULL
+education$DataFormat=NULL
+
+#combine join1 with education
+join2= left_join(join1, education, by='state')
+# change states to abbreviations
+join2$state = state2abbr(join2$state)
+
+# combine with target df
+df_join=left_join(df, join2, by='state')
+
+#write.csv(df_join,'data/clean_join_target.csv')
+```
+
+
+
+# Front page map 
+```{r}
+# load cleaned csv
+df = read.csv('/Users/judy/Desktop/rshiny/data/clean_join_target.csv')[,-1]
+
+```
+
+
+
+
+
+
+
+
+
+
+
+
+# looking at tags stores with tags
+```{r} 
+# first strip, then separate by ',', then gather and drop key column
+into=c('v1','v2','v3','v4','v5','v6','v7','v8','v9','v10','v11','v12','v13','v14','v15','v16','v17')
 temp=separate(temp1,capability,
               into=into,sep=',', remove=TRUE)
 
