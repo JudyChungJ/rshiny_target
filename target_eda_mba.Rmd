@@ -1,0 +1,112 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+# Libraries
+```{r}
+library(tidyverse)
+library(plotly)
+library(openintro) #state abb
+library(dygraphs)
+library(arules)
+library(arulesViz)
+
+```
+
+```{r}
+df =read.csv('./data/target.csv')
+```
+
+```{r}
+df = df %>% 
+  select(city=Address.City, 
+         county=Address.County, 
+         state=Address.Subdivision,
+         lat=Address.Latitude,
+         lon=Address.Longitude,
+         address=Address.FormattedAddress,
+         intersection=Address.IntersectionDescription,
+         storeID=AlternateIdentifier.ID,
+         remod_date=LocationMilestones.LastRemodelDate,
+         open_date=LocationMilestones.OpenDate,
+         name=Name,
+         type=SubTypeDescription,
+         beginMF=BeginTime.MF,
+         beginSa=BeginTime.Sat,
+         beginSu=BeginTime.Sun,
+         capability=AllCapability)
+```
+
+```{r}
+# remod date and open date parse datetime
+head(df$open_date)
+df$open_date = readr::parse_datetime(df$open_date)
+df$remod_date = readr::parse_datetime(df$remod_date)
+class(df$open_date)
+
+# add yr column for 
+df = mutate(df,open_year = format(df$open_date, "%Y")) %>% 
+  mutate(open_year=(as.numeric(open_year)))
+```
+
+```{r}
+head(temp1)
+LIST(temp1$capability)
+```
+```{r}
+
+
+temp1=df %>% 
+  mutate(capability = gsub('\\[','', capability)) %>% 
+  mutate(capability = gsub('\\]','', capability)) %>% 
+  mutate(capability = gsub("'",'', capability)) %>% 
+  mutate(capability = gsub(" ",'', capability)) %>% 
+  mutate(capability = gsub('Caf\xfc\xbe\x8e\x96\x94\xbc','Cafe',capability)) %>% 
+  mutate(capability = gsub('SuperTarget','',capability))
+
+# create tag df for market basket analysis
+tagdf=select(temp1, capability)
+
+into=c('v1','v2','v3','v4','v5','v6','v7','v8','v9','v10','v11','v12','v13','v14','v15','v16','v17')
+# separate capability to columns
+tagdf2=separate(tagdf,capability,into=into,sep=',')
+
+# drop stores that have no tags
+tagdf2= filter(tagdf2,tagdf2$v1!="")
+
+write.csv(tagdf2, 'tag.csv',quote = FALSE, row.names = TRUE)
+
+
+# make transactions type
+trans = read.transactions('tag.csv', format = 'basket', sep=',')
+class(trans)
+summary(trans)
+# from summary
+
+# check support levels to determine threshold
+itemFrequencyPlot(trans, topN = 25)
+```
+
+```{r}
+rules = apriori(trans, parameter = list(supp=0.1, conf=0.8))
+rules = sort(rules, by='confidence', decreasing = TRUE)
+rules = rules[!is.redundant(rules)]
+summary(rules)
+inspect(rules[1:20])
+
+inspect(head(sort(rules, by ="lift"),10))
+
+library("RColorBrewer")
+plot(rules,control=list(col=brewer.pal(11,"Spectral")),main="")
+
+
+```
+
+
+```{r}
+subrules2 <- head(sort(rules, by="lift"), 15)
+
+plot(subrules2, method="graph",control=list(type="items",main=""))
+```
+
