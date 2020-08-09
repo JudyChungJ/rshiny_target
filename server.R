@@ -82,24 +82,46 @@ function(input, output) {
                          )
   )
   
+  
+  output$market=renderPlot(
+    itemFrequencyPlot(target_mba,topN = 20)
+  )
+  rules = apriori(target_mba, parameter = list(supp=0.1, conf=0.8))
+  rules = sort(rules, by='confidence', decreasing = TRUE)
+  rules = rules[!is.redundant(rules)]
+  subrules = head(sort(rules, by="lift"), 10)
+  
+  output$network=renderPlot(
+    plot(subrules, method="graph",control=list(type="items",main=""))
+  )
+ 
+??arulesVis
     
 }
 
-# output$scatter=renderPlot(
-#   target%>%
-#     filter(st_pop!=is.na(st_pop)) %>%
-#     group_by(state) %>%
-#     dplyr::mutate(st_pop_1m = st_pop/1000000,
-#                   st_nstore=n(),
-#                   st_percap=st_nstore/mean(st_pop)) %>%
-#     ggplot(aes(x=input$x_axis, y=st_nstore))+
-#     geom_point(color='#CC0000')+
-#     geom_smooth(method='lm', color='#000000', size=0.5)+
-#     stat_cor(method = 'pearson')+
-#     theme_bw()+
-#     theme(panel.grid.major = element_blank(),
-#           panel.grid.minor = element_blank(),
-#           plot.title = element_text(hjust = 0.5))+
-#     ylab('Number of Stores')+
-#     xlab('Dropdown Menu: Population in Millions')
-# )
+# target = read.csv('/Users/judy/Desktop/rshiny/data/clean_join_target.csv')[,-1]
+# library(arules)
+# library(arulesViz)
+# tagdf=select(temp1, capability)
+# 
+# into=c('v1','v2','v3','v4','v5','v6','v7','v8','v9','v10','v11','v12','v13','v14','v15','v16','v17')
+# # separate capability to columns
+# tagdf2=separate(tagdf,capability,into=into,sep=',')
+# 
+# head(tagdf2)
+# # drop stores that have no tags
+# tagdf2= filter(tagdf2,tagdf2$v1!="")
+# 
+# 
+# 
+# #write.csv(tagdf2, 'tag.csv',quote = FALSE, row.names = TRUE)
+# 
+# 
+# # make transactions type
+# trans = read.transactions('tag.csv', format = 'basket', sep=',')
+# class(trans)
+# summary(trans)
+# # from summary
+# 
+# # check support levels to determine threshold
+# arules::itemFrequencyPlot(trans, topN = 25)

@@ -12,6 +12,7 @@ library(dygraphs)
 library(arules)
 library(arulesViz)
 
+
 ```
 
 ```{r}
@@ -53,14 +54,17 @@ df = mutate(df,open_year = format(df$open_date, "%Y")) %>%
 
 ```{r}
 
-
 temp1=df %>% 
   mutate(capability = gsub('\\[','', capability)) %>% 
   mutate(capability = gsub('\\]','', capability)) %>% 
-  mutate(capability = gsub("'",'', capability)) %>% 
-  mutate(capability = gsub(", ",',', capability)) %>% 
-  mutate(capability = gsub('Caf\xfc\xbe\x8e\x96\x94\xbc','Cafe',capability)) %>% 
-  mutate(capability = gsub('SuperTarget','',capability))
+  mutate(capability = gsub("', '",':', capability)) %>%
+  mutate(capability = gsub("'",'', capability)) %>%
+  mutate(capability = gsub(",",'', capability)) %>% 
+  mutate(capability = gsub('Caf\xfc\xbe\x8e\x96\x94\xbc',
+                           'Cafe',capability)) %>%
+  mutate(capability = gsub( '\"DAmico & Sons Italian Kitchen\"',
+                            'DAmico & Sons Italian Kitchen', capability)) %>%
+  mutate(capability = gsub('Super Target','',capability)) # redundant tag in capabilty is in type col
 
 head(temp1)
 # create tag df for market basket analysis
@@ -68,7 +72,7 @@ tagdf=select(temp1, capability)
 
 into=c('v1','v2','v3','v4','v5','v6','v7','v8','v9','v10','v11','v12','v13','v14','v15','v16','v17')
 # separate capability to columns
-tagdf2=separate(tagdf,capability,into=into,sep=',')
+tagdf2=separate(tagdf,capability,into=into,sep=':')
 
 head(tagdf2)
 # drop stores that have no tags
@@ -76,17 +80,18 @@ tagdf2= filter(tagdf2,tagdf2$v1!="")
 
 
 
-#write.csv(tagdf2, 'tag.csv',quote = FALSE, row.names = TRUE)
+#write.csv(tagdf2, 'data/tag.csv',quote = FALSE, row.names = TRUE)
 
 
 # make transactions type
-trans = read.transactions('tag.csv', format = 'basket', sep=',')
+trans = read.transactions('data/tag.csv', format = 'basket', sep=',')
 class(trans)
 summary(trans)
 # from summary
 
 # check support levels to determine threshold
-itemFrequencyPlot(trans, topN = 25)
+arules::itemFrequencyPlot(trans, topN = 25)
+
 ```
 
 ```{r}
@@ -109,5 +114,7 @@ plot(rules,control=list(col=brewer.pal(11,"Spectral")),main="")
 subrules2 <- head(sort(rules, by="lift"), 15)
 
 plot(subrules2, method="graph",control=list(type="items",main=""))
+
+?plot
 ```
 

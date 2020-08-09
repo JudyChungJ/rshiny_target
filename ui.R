@@ -37,11 +37,21 @@ dashboardPage(skin='red',
                                         "Percent Poverty" = 'st_pov_p'
                                         )
               )
-              ),
+      ),
       tabItem(tabName = 'mba',
-              h1('market basket analysis')
-              
-              )
+              h1('market basket analysis'),
+              plotOutput('market'),
+              h1('Network Graph'),
+              plotOutput('network')
+            
+                
+      ),
+      tabItem(tabName = 'data'
+      ),
+      tabItem(tabName = 'judy'
+        
+      )
+      
 
     )
   )

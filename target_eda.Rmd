@@ -46,8 +46,9 @@ df = mutate(df,open_year = format(df$open_date, "%Y")) %>%
 df=df %>% 
   mutate(capability = gsub('\\[','', capability)) %>% 
   mutate(capability = gsub('\\]','', capability)) %>% 
-  mutate(capability = gsub("'",'', capability)) %>% 
-  mutate(capability = gsub(", ",',', capability)) %>% 
+  mutate(capability = gsub("', '",':', capability)) %>%
+  mutate(capability = gsub("'",'', capability)) %>%
+  mutate(capability = gsub(",",'', capability)) %>% 
   mutate(capability = gsub('Caf\xfc\xbe\x8e\x96\x94\xbc',
                            'Cafe',capability)) %>%
   mutate(capability = gsub( '\"DAmico & Sons Italian Kitchen\"',
@@ -122,10 +123,10 @@ min(df$open_year)
 dfm=df %>% 
   select(state,lat,lon,storeID,capability,open_year) %>% 
   filter(state!='AK',state!='HI')
-# separate by ',', then gather and drop key column
+# separate by ':', then gather and drop key column
 into=c('v1','v2','v3','v4','v5','v6','v7','v8','v9','v10','v11','v12','v13','v14','v15','v16','v17')
 dfm=separate(dfm,capability,
-              into=into,sep=',', remove=TRUE)
+              into=into,sep=':', remove=TRUE)
 
 dfm=gather(dfm, key='col', value='capability', v1:v17, na.rm=TRUE)
 
@@ -137,7 +138,7 @@ dfmap = dfm %>%
   filter(open_year<=2000) %>% 
   filter(capability==capability)
 
-write.csv(dfm,'data/map_target.csv')
+#write.csv(dfm,'data/map_target.csv')
 
 
 ggplot() + 
