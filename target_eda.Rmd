@@ -13,6 +13,7 @@ library(arules)
 library(arulesViz)
 library(igraph)
 library(ggplot2)
+library(ggpubr)
 
 ```
 
@@ -116,7 +117,7 @@ min(df$open_year)
 
 
 
-
+# scatter plot map
 ```{r}
 dfm=df %>% 
   select(state,lat,lon,storeID,capability,open_year) %>% 
@@ -161,6 +162,155 @@ unique(dfmap$capability)
 
 
 ```
+
+# bar with percapita for states
+```{r}
+df %>% 
+  filter(st_pop!=is.na(st_pop)) %>% 
+  group_by(state) %>% 
+  dplyr::summarise(st_pop_1m = st_pop/1000000,
+                st_nstore=n(),
+                st_percap=st_nstore/mean(st_pop_1m)) %>% 
+  distinct() %>% 
+  arrange(desc(st_percap)) %>% 
+  head(.,20) %>% 
+  ggplot(aes(x=reorder(state, -st_percap),y=st_percap))+
+  geom_col(fill= '#CC0000')+
+  theme_bw()+
+  theme(panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        plot.title = element_text(hjust = 0.5))+
+  ylab('Stores per Million People')+
+  xlab('US States')+
+  ggtitle('Stores Per Capita')
+
+```
+
+
+# scatterplots
+```{r}
+
+# next two blocks going into shiny
+df3=df %>% 
+  filter(st_pop!=is.na(st_pop)) %>% 
+  group_by(state) %>% 
+  dplyr::mutate(st_pop_1m = st_pop/1000000,
+                st_nstore=n(),
+                st_percap=st_nstore/mean(st_pop))
+
+df3 %>% 
+  ggplot(aes(x=st_pop_1m, y=st_nstore))+
+  geom_point(color='#CC0000')+
+  geom_smooth(method='lm', color='#000000', size=0.5)+
+  stat_cor(method = 'pearson')+
+  theme_bw()+
+  theme(panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        plot.title = element_text(hjust = 0.5))+
+  ylab('Number of Stores')+
+  xlab('Dropdown Menu: Population in Millions')
+  
+
+df3 %>% 
+  ggplot(aes(x=st_percap_income_usd, y=st_nstore))+
+  geom_point()+
+  geom_smooth(method='lm')+
+  stat_cor(method = 'pearson')
+
+df3 %>% 
+  ggplot(aes(x=st_bach_p, y=st_nstore))+
+  geom_point()+
+  geom_smooth(method='lm', color='red')+
+  stat_cor(method = 'pearson')
+
+df3 %>% 
+  ggplot(aes(x=st_hs_p, y=st_nstore))+
+  geom_point()+
+  geom_smooth(method='lm')+
+  stat_cor(method = 'pearson')
+
+df3 %>% 
+  ggplot(aes(x=st_pov_p, y=st_nstore))+
+  geom_point()+
+  geom_smooth(method='lm')+
+  stat_cor(method = 'pearson')
+
+```
+
+#boxplots with above and below average per cap
+```{r}
+# bargraph
+df3 %>%
+  summarise(mean(st_percap))
+  dplyr::arrange('st_percap')
+  ggplot(aes(x= state, y=st_percap))+
+  geom_col(mapping =aes(y =order(desc('st_percap'))))
+
+df3 %>% 
+  group_by(state) %>% 
+  summarize(st_percap)
+
+head(df3)
+?arrange
+
+df %>% 
+  group_by(state) %>% 
+  dplyr::summarize(n=n(), st_percap=n/mean(st_pop)) %>% 
+  filter(st_percap!=is.na(st_percap)) %>% 
+  dplyr::summarise(average(st_percap))
+
+df3 %>% 
+  filter(st_percap>=5.221428e-06) %>%
+  group_by(state) %>% 
+  dplyr::summarise(n=n()) %>% 
+  arrange(n)
+
+df3 %>% 
+  mutate(above = st_percap>=5.221428e-06) %>% 
+  ggplot()+
+  geom_boxplot(aes(x=above, y=st_percap_income_usd))
+
+f1a= df3 %>% 
+  filter(st_percap>=5.221428e-06)
+f1b= df3 %>% 
+  filter(st_percap<5.221428e-06)
+
+t.test(f1a$st_percap_income_usd, f1b$st_percap_income_usd)
+?t.test
+
+
+df3 %>% 
+  mutate(above = st_percap>=5.221428e-06) %>% 
+  ggplot()+
+  geom_boxplot(aes(x=above, y=st_pop))
+
+t.test(f1a$st_pop, f1b$st_pop)
+
+
+df3 %>% 
+  mutate(above = st_percap>=5.221428e-06) %>% 
+  ggplot()+
+  geom_boxplot(aes(x=above, y=st_pov_p))
+
+t.test(f1a$st_pov_p, f1b$st_pov_p, alternative= 'two.sided')
+
+t.test(temp$Body.Temp[temp$Gender == "Female"],
+       temp$Body.Temp[temp$Gender == "Male"],
+       alternative = "two.sided")
+
+names(df3)
+```
+
+```{r}
+df %>% 
+  group_by(state) %>%
+  dplyr::summarize(st_nstore =n(),st_pop=mean(st_pop), 
+                   st_percap = (st_nstore/mean(st_pop))*100000) %>% 
+  dplyr::arrange(desc(st_percap)) %>% 
+  ggplot(aes(x=st_nstore, y=st_pop)) +
+  geom_point()
+```
+
 
 # looking at tags stores with tags
 

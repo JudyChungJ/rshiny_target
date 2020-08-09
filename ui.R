@@ -24,7 +24,17 @@ dashboardPage(skin='red',
                 h1('hi there')
       ),
       tabItem(tabName = 'gstate',
-              h1('some stuff')),
+              h1('some stuff'),
+              # barchart
+              plotOutput('capbar'),
+              
+              # scatterplots
+              plotOutput('scatter'),
+              radioButtons(inputID = 'x_axis',
+                           label = 'Select Parameter:',
+                           c('a','b')
+              )
+              ),
       tabItem(tabName = 'mba',
               h1('market basket analysis')
               
