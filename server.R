@@ -1,11 +1,11 @@
 
 function(input, output) {
-  # lazy evaluation needs to be called
 
- 
+
+  # reactive function for target location map
   map_yr_cap=reactive(maptarget %>% filter(open_year<=input$map_year))
 
-
+  # target location map
   output$tmap=renderPlot(
     ggplot() + 
       geom_polygon(data = map_data("usa"), aes(x=long, y = lat, group = group),
