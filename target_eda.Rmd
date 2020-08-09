@@ -47,12 +47,11 @@ df=df %>%
   mutate(capability = gsub('\\]','', capability)) %>% 
   mutate(capability = gsub("'",'', capability)) %>% 
   mutate(capability = gsub(", ",',', capability)) %>% 
-  mutate(capability = gsub('Caf\xfc\xbe\x8e\x96\x94\xbc','Cafe',capability)) %>% 
-  mutate(capability = gsub('SuperTarget','',capability)) # redundant tag in capabilty is in type col
-
-# 
-
-#write.csv(df,'data/clean_target.csv')
+  mutate(capability = gsub('Caf\xfc\xbe\x8e\x96\x94\xbc',
+                           'Cafe',capability)) %>%
+  mutate(capability = gsub( '\"DAmico & Sons Italian Kitchen\"',
+                            'DAmico & Sons Italian Kitchen', capability)) %>%
+  mutate(capability = gsub('Super Target','',capability)) # redundant tag in capabilty is in type col
 ```
 # combine other data sets
 ```{r}
@@ -109,9 +108,25 @@ df_join=left_join(df, join2, by='state')
 
 # Front page map 
 ```{r}
-# load cleaned csv
+# load cleaned and joined csv
 df = read.csv('/Users/judy/Desktop/rshiny/data/clean_join_target.csv')[,-1]
+```
 
+```{r}
+dfmap=df %>% 
+  select(state,lat,lon,storeID,capability,open_year)
+
+# separate by ',', then gather and drop key column
+into=c('v1','v2','v3','v4','v5','v6','v7','v8','v9','v10','v11','v12','v13','v14','v15','v16','v17')
+dfmap=separate(dfmap,capability,
+              into=into,sep=',', remove=TRUE)
+
+dfmap=gather(dfmap, key='col', value='capability', v1:v17, na.rm=TRUE)
+
+dfmap$col = NULL
+
+# check capability tags
+unique(dfmap$capability)
 ```
 
 
@@ -127,16 +142,7 @@ df = read.csv('/Users/judy/Desktop/rshiny/data/clean_join_target.csv')[,-1]
 
 # looking at tags stores with tags
 ```{r} 
-# first strip, then separate by ',', then gather and drop key column
-into=c('v1','v2','v3','v4','v5','v6','v7','v8','v9','v10','v11','v12','v13','v14','v15','v16','v17')
-temp=separate(temp1,capability,
-              into=into,sep=',', remove=TRUE)
 
-dfc=gather(temp, key='col', value='capability', v1:v17, na.rm=TRUE)
-
-dfc$col = NULL
-head(dfc)
-unique(dfc$capability)
 ```
 
 ```{r}
