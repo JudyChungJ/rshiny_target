@@ -110,40 +110,59 @@ df_join=left_join(df, join2, by='state')
 ```{r}
 # load cleaned and joined csv
 df = read.csv('/Users/judy/Desktop/rshiny/data/clean_join_target.csv')[,-1]
+head(df)
+min(df$open_year)
 ```
+
+
+
 
 ```{r}
-dfmap=df %>% 
-  select(state,lat,lon,storeID,capability,open_year)
-
+dfm=df %>% 
+  select(state,lat,lon,storeID,capability,open_year) %>% 
+  filter(state!='AK',state!='HI')
 # separate by ',', then gather and drop key column
 into=c('v1','v2','v3','v4','v5','v6','v7','v8','v9','v10','v11','v12','v13','v14','v15','v16','v17')
-dfmap=separate(dfmap,capability,
+dfm=separate(dfm,capability,
               into=into,sep=',', remove=TRUE)
 
-dfmap=gather(dfmap, key='col', value='capability', v1:v17, na.rm=TRUE)
+dfm=gather(dfm, key='col', value='capability', v1:v17, na.rm=TRUE)
 
-dfmap$col = NULL
+dfm$col = NULL
 
+# the shiny part for input slider
+# capability or 'input tag'
+dfmap = dfm %>% 
+  filter(open_year<=2000) %>% 
+  filter(capability==capability)
+
+write.csv(dfm,'data/map_target.csv')
+
+
+ggplot() + 
+  geom_polygon(data = map_data("usa"), aes(x=long, y = lat, group = group),
+               fill = '#FFFFFF', color = '#959595') + 
+  geom_polygon(data = map_data("state"),aes(x = long, y = lat, group = group),
+               fill ='#FFFFFF', color = '#959595',size=0.2) +
+  coord_fixed(1.3) +
+  geom_point(dfmap, mapping = aes(x=lon, y=lat),color='#CC0000',size=0.9) + 
+  xlab("") +
+  ylab("") +
+  theme_bw() +
+  coord_map() +
+  ggtitle("Targets Across the US") + 
+  theme(axis.text = element_blank(),
+        axis.ticks = element_blank(),
+        panel.border = element_blank(),
+        panel.grid.major = element_blank(),
+        plot.title = element_text(hjust = 0.5))
 # check capability tags
 unique(dfmap$capability)
+
+
 ```
-
-
-
-
-
-
-
-
-
-
-
 
 # looking at tags stores with tags
-```{r} 
-
-```
 
 ```{r}
 # create tag df for market basket analysis
