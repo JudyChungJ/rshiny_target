@@ -30,9 +30,12 @@ dashboardPage(skin='red',
               
               # scatterplots
               plotOutput('scatter'),
-              radioButtons(inputID = 'x_axis',
-                           label = 'Select Parameter:',
-                           c('a','b')
+              radioButtons('axis','Select Parameter:',
+                           choices=list("Population in Millions"="st_pop_1m",
+                                        "Per Capita Income USD" = "st_percap_income_usd",
+                                        "Education Bachelors Level" = 'st_bach_p',
+                                        "Percent Poverty" = 'st_pov_p'
+                                        )
               )
               ),
       tabItem(tabName = 'mba',
