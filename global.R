@@ -1,12 +1,10 @@
 
 library(tidyverse)
-library(plotly)
-library(openintro) #state abb
-library(dygraphs)
+library(DT)
 library(arules)
-library(arulesViz)
-library(igraph)
+#library(arulesViz)
 library(ggplot2)
+#library(plotly)
 
 target = read.csv('/Users/judy/Desktop/rshiny/data/clean_join_target.csv')[,-1]
 maptarget = read.csv('/Users/judy/Desktop/rshiny/data/map_target.csv')[,-1]
