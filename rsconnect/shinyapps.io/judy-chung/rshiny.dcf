@@ -1,0 +1,13 @@
+name: rshiny
+title: rshiny
+username:
+account: judy-chung
+server: shinyapps.io
+hostUrl: https://api.shinyapps.io/v1
+appId: 2655607
+bundleId: 3495259
+url: https://judy-chung.shinyapps.io/rshiny/
+when: 1597029219.4592
+asMultiple: FALSE
+asStatic: FALSE
+ignoredFiles: target_eda_mba.nb.html|target_eda_mba.Rmd|target_eda.nb.html|target_eda.Rmd|data/.DS_Store

@@ -1,13 +1,13 @@
 
 dashboardPage(skin='red',     
             
-  dashboardHeader(title = 'Target Location Analytics'),
+  dashboardHeader(title = 'Target Analysis'),
   dashboardSidebar(
     sidebarMenu(
       menuItem('Map', tabName = 'map', icon = icon('map')),
       menuItem('State-level Analyses', tabName = "gstate", icon = icon('chart-bar')),
-      menuItem('What to Build', tabName = 'mba', icon = icon('question')),
-      menuItem('Data', tabName = 'data', icon = icon('database')),
+      menuItem('What to Include', tabName = 'mba', icon = icon('question')),
+      menuItem('Table', tabName = 'data', icon = icon('table')),
       menuItem('About Judy', tabName = "judy", icon = icon('id-badge'))
     )
   ),
@@ -40,36 +40,43 @@ dashboardPage(skin='red',
       tabItem(tabName = 'gstate',
               fluidRow(
                 column(5,
-                       h2('Store Per Capita')
-                ),
-                column(7,
-                       h2('Demographic Scatterplots')
-                )
-              ),
-              fluidRow(
-                column(5,
+                       h2('Store Per Capita'),
                        # barchart
                        plotOutput('capbar'),
                 ),
                 column(7,
+                       h2('Demographic Scatterplots'),
                        # scatterplots
                        plotOutput('scatter'),
-                       radioButtons('axis','Select Parameter:',
-                                    choices=list("Population in Millions"="st_pop_1m",
-                                                 "Per Capita Income USD" = "st_percap_income_usd",
-                                                 "Education Bachelors Level" = 'st_bach_p',
-                                                 "Percent Poverty" = 'st_pov_p'
-                                    )
-                       )                 
+                       fluidRow(
+                         column(6,
+                                radioButtons('axis','Select Parameter:',
+                                             choices=list("Population in Millions"="st_pop_1m",
+                                                          "Per Capita Income USD" = "st_percap_income_usd",
+                                                          "Education Bachelors Level" = 'st_bach_p',
+                                                          "Percent Poverty" = 'st_pov_p'
+                                             )
+                                )
+                         ),
+                         column(6,
+                           h5('Select the demographic information to see it plotted against 
+                              store numbers on the graph above.'),
+                           h5( 'The data are state level and from the
+                               Bureau of Economic Analysis (2016). Correlation coefficient and p_values
+                               are included on the graph.')
+                         )
+                       )
+
                 )
               )
 
       ),
       tabItem(tabName = 'mba',
-              h1('market basket analysis'),
+              h1('Market Basket Analysis'),
+              h3('Relative Capability Frequency'),
               plotOutput('market'),
-              h1('Network Graph'),
-              plotOutput('network')
+              h3('Network Plot'),
+              visNetworkOutput('network')
             
                 
       ),
@@ -85,20 +92,21 @@ dashboardPage(skin='red',
                        h5('judychung.j@gmail.com'),
                        tags$a(
                          href="https://www.linkedin.com/in/judy-chung-366abb143/",
-                         'linkedin'
+                         'LinkedIn'
                          ),
                        br(),
                        tags$a(
                          href="https://github.com/JudyChungJ",
-                         'github'
+                         'GitHub'
                        ),
                       h5('I graduated from UC Berkeley with a Bachelors in
-                         Biology and have since worked many systems including 
-                         insect control, fire ecology, and soil microbiology
-                         with a focus on fungi. I have always been driven by research
-                         and deriving insights from complex systems and improving
-                         . Data science is
-                         that next step in the wider world of data ')
+                         Biology and have since then conducted research on insect control, 
+                         fire ecology, and soil microbiology.
+                         I have always been driven by my questions. I enjoy the process of 
+                         observing complex systems and feel compelled to conduct experiments to 
+                         derive useful insights. Being a data scientist is a part of this 
+                         exciting journey of exploring this complicated yet wonderful world.
+                         Thank you for taking the time to explore my shiny app!')
                   )
               )
         

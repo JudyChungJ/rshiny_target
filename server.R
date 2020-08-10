@@ -91,10 +91,11 @@ function(input, output) {
   
   
   # MARKET BASKET NETWORK GRAPH
-  output$network=renderPlot(
-    plot(subrules, method="graph",control=list(type="items",main=""))
+  output$network=renderVisNetwork(
+    plot(subrules, method="graph",control=list(type="items",main=""),engine = "htmlwidget")
   )
   
+  #engine = "htmlwidget"
 
   # DATA TABLE
   output$table = DT::renderDataTable({

@@ -19,7 +19,7 @@ library(ggpubr)
 
 # Load in the target file
 ```{r}
-df =read.csv('/Users/judy/Desktop/rshiny/data/target.csv')
+df =read.csv('data/target.csv')
 str(df)
 head(df)
 ```
@@ -111,7 +111,7 @@ df_join=left_join(df, join2, by='state')
 # Front page map 
 ```{r}
 # load cleaned and joined csv
-df = read.csv('/Users/judy/Desktop/rshiny/data/clean_join_target.csv')[,-1]
+df = read.csv('data/clean_join_target.csv')[,-1]
 head(df)
 min(df$open_year)
 ```
